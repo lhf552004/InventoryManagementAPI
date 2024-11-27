@@ -1,0 +1,27 @@
+# Ignore files related to version control
+.git
+.gitignore
+
+# Ignore build artifacts
+obj/
+bin/
+
+# Ignore configuration files and secrets
+appsettings.*.json
+secrets.json
+.env
+
+# Ignore Docker-specific files
+docker-compose.override.yml
+*.generated.yml
+
+# Ignore IDE and editor files
+.vscode/
+.vs/
+*.user
+*.suo
+*.cache
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
