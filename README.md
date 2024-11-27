@@ -1,6 +1,7 @@
 
 
+## Build the image
 
 ```
-docker build -t InventoryManagementAPI .
+docker build -t inventory-management-api .
 ```
