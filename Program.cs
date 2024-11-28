@@ -1,9 +1,10 @@
 using Amazon.Lambda.AspNetCoreServer;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole(); // Logs to the console, which is captured by Docker
 
 // Add services to the DI container
 builder.Services.AddControllers();
@@ -12,6 +13,15 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Use the logger
+var logger = app.Logger;
+logger.LogInformation("Application is starting...");
+
+// Check if running in Lambda
+var isLambda = Environment.GetEnvironmentVariable("AWS_EXECUTION_ENV")?.StartsWith("AWS_Lambda") == true;
+
+logger.LogInformation("Is running in Lambda: {IsLambda}", isLambda);
+
 // Configure middleware and HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -19,11 +29,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-app.UseRouting(); // Enable routing middleware
-app.UseAuthorization();
+if (!isLambda) // Only redirect to HTTPS outside Lambda
+{
+    app.UseHttpsRedirection();
+}
 
-app.MapControllers(); // Map controllers here
+app.UseRouting();
+app.UseAuthorization();
+app.MapControllers();
 
 app.Run();
 
@@ -32,6 +45,12 @@ public class LambdaEntryPoint : APIGatewayProxyFunction
 {
     protected override void Init(IWebHostBuilder builder)
     {
+        builder.ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole(); // Ensure logs are sent to CloudWatch in Lambda
+        });
+
         // Configure services and middleware for Lambda runtime
         builder.ConfigureServices(services =>
         {
@@ -48,7 +67,16 @@ public class LambdaEntryPoint : APIGatewayProxyFunction
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
+            // Do not use HTTPS redirection in Lambda
+            var isLambda = Environment.GetEnvironmentVariable("AWS_EXECUTION_ENV")?.StartsWith("AWS_Lambda") == true;
+            var logger = app.ApplicationServices.GetRequiredService<ILogger<LambdaEntryPoint>>();
+            logger.LogInformation("Is running in Lambda: {IsLambda}", isLambda);
+
+            if (!isLambda)
+            {
+                app.UseHttpsRedirection();
+            }
+
             app.UseRouting();
             app.UseAuthorization();
             app.UseEndpoints(endpoints =>
