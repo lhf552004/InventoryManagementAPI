@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+      - dev
+      - test
+  pull_request:
+    branches:
+      - main
+      - dev
+      - test
 
 jobs:
   build-and-push:
@@ -45,8 +52,26 @@ jobs:
         with:
           repository: lhf552004/Inventory-lambda-deployment
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
+      
+      # Step 2: Set Environment Variables Based on Branch
+      - name: Determine Environment
+        id: determine_env
+        run: |
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            echo "BACKEND_FILE=backend-prod.hcl" >> $GITHUB_ENV
+            echo "TFVARS_FILE=env/prod.tfvars" >> $GITHUB_ENV
+          elif [ "${{ github.ref_name }}" == "dev" ]; then
+            echo "BACKEND_FILE=backend-dev.hcl" >> $GITHUB_ENV
+            echo "TFVARS_FILE=env/dev.tfvars" >> $GITHUB_ENV
+          elif [ "${{ github.ref_name }}" == "test" ]; then
+            echo "BACKEND_FILE=backend-test.hcl" >> $GITHUB_ENV
+            echo "TFVARS_FILE=env/test.tfvars" >> $GITHUB_ENV
+          else
+            echo "Branch not recognized. Exiting."
+            exit 1
+          fi
 
-      # Step 2: Configure AWS Credentials
+      # Step 3: Configure AWS Credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -54,20 +79,20 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2 # Replace with your ECR region
 
-      # Step 3: Setup Terraform
+      # Step 4: Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
       
-      # Step 4: Install provider plugin
+      # Step 5: Install provider plugin
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend-config={{ env.BACKEND_FILE }}
 
-      # Step 5: Run Terraform Apply
+      # Step 6: Run Terraform Apply
       - name: Deploy Lambda
-        run: terraform apply -auto-approve -var "image_tag=${{ github.sha }}"
+        run: terraform apply -auto-approve -var-file=${{ env.TFVARS_FILE }} -var "image_tag=${{ github.sha }}"
       
-      # Step 6 Clean cache
+      # Step 7 Clean cache
       - name: Clean Terraform Cache
         run: rm -rf .terraform .terraform.lock.hcl
