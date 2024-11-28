@@ -43,7 +43,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
-          repository: https://github.com/lhf552004/InventoryManagementInfrastructure
+          repository: lhf552004/InventoryManagementInfrastructure
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
 
       # Step 2: Setup Terraform
