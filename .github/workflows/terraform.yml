@@ -87,7 +87,7 @@ jobs:
       
       # Step 5: Install provider plugin
       - name: Terraform Init
-        run: terraform init -backend-config={{ env.BACKEND_FILE }}
+        run: terraform init -backend-config=${{ env.BACKEND_FILE }}
 
       # Step 6: Run Terraform Apply
       - name: Deploy Lambda
