@@ -46,20 +46,28 @@ jobs:
           repository: lhf552004/InventoryManagementInfrastructure
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
 
-      # Step 2: Setup Terraform
+      # Step 2: Configure AWS Credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2 # Replace with your ECR region
+
+      # Step 3: Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
       
-      # Step 3: Install provider plugin
+      # Step 4: Install provider plugin
       - name: Terraform Init
         run: terraform init
 
-      # Step 4: Run Terraform Apply
+      # Step 5: Run Terraform Apply
       - name: Deploy Lambda
         run: terraform apply -auto-approve -var "image_tag=${{ github.sha }}"
       
-      # Step 5 Clean cache
+      # Step 6 Clean cache
       - name: Clean Terraform Cache
         run: rm -rf .terraform .terraform.lock.hcl
